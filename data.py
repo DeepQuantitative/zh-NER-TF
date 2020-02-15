@@ -98,7 +98,6 @@ def read_dictionary(vocab_path):
     vocab_path = os.path.join(vocab_path)
     with open(vocab_path, 'rb') as fr:
         word2id = pickle.load(fr)
-    print('vocab_size:', len(word2id))
     return word2id
 
 

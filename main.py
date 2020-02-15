@@ -34,42 +34,54 @@ parser.add_argument('--mode', type=str, default='demo', help='train/test/demo')
 parser.add_argument('--demo_model', type=str, default='1521112368', help='model for test and demo')
 args = parser.parse_args()
 
+## load char vocabulary list
+vocab_path = os.path.join('.', args.train_data, 'word2id.pkl')
+word2id = read_dictionary(vocab_path)
 
-## get char embeddings
-word2id = read_dictionary(os.path.join('.', args.train_data, 'word2id.pkl'))
+# get char embeddings
 if args.pretrain_embedding == 'random':
     embeddings = random_embedding(word2id, args.embedding_dim)
 else:
     embedding_path = 'pretrain_embedding.npy'
     embeddings = np.array(np.load(embedding_path), dtype='float32')
 
-
 ## read corpus and get training data
-if args.mode != 'demo':
+if args.mode == 'demo':
     train_path = os.path.join('.', args.train_data, 'train_data')
     test_path = os.path.join('.', args.test_data, 'test_data')
     train_data = read_corpus(train_path)
-    test_data = read_corpus(test_path); test_size = len(test_data)
-
+    test_data = read_corpus(test_path)
+    test_size = len(test_data)
 
 ## paths setting
 paths = {}
+# output_path
 timestamp = str(int(time.time())) if args.mode == 'train' else args.demo_model
 output_path = os.path.join('.', args.train_data+"_save", timestamp)
-if not os.path.exists(output_path): os.makedirs(output_path)
+print('output_path: %s' % output_path)
+if not os.path.exists(output_path):
+    os.makedirs(output_path)
+
 summary_path = os.path.join(output_path, "summaries")
 paths['summary_path'] = summary_path
-if not os.path.exists(summary_path): os.makedirs(summary_path)
+if not os.path.exists(summary_path):
+    os.makedirs(summary_path)
+
 model_path = os.path.join(output_path, "checkpoints/")
-if not os.path.exists(model_path): os.makedirs(model_path)
+if not os.path.exists(model_path):
+    os.makedirs(model_path)
+
 ckpt_prefix = os.path.join(model_path, "model")
 paths['model_path'] = ckpt_prefix
 result_path = os.path.join(output_path, "results")
 paths['result_path'] = result_path
-if not os.path.exists(result_path): os.makedirs(result_path)
+if not os.path.exists(result_path):
+    os.makedirs(result_path)
+
 log_path = os.path.join(result_path, "log.txt")
 paths['log_path'] = log_path
 get_logger(log_path).info(str(args))
+print('paths %s' % paths)
 
 
 ## training model
@@ -108,7 +120,7 @@ elif args.mode == 'demo':
     with tf.Session(config=config) as sess:
         print('============= demo =============')
         saver.restore(sess, ckpt_file)
-        while(1):
+        while True:
             print('Please input your sentence:')
             demo_sent = input()
             if demo_sent == '' or demo_sent.isspace():
@@ -116,7 +128,10 @@ elif args.mode == 'demo':
                 break
             else:
                 demo_sent = list(demo_sent.strip())
+                print(demo_sent)
                 demo_data = [(demo_sent, ['O'] * len(demo_sent))]
+                print(demo_data)
                 tag = model.demo_one(sess, demo_data)
+                print(tag)
                 PER, LOC, ORG = get_entity(tag, demo_sent)
-                print('PER: {}\nLOC: {}\nORG: {}'.format(PER, LOC, ORG))
+                print('PERSON: {}\nLOCATION: {}\nORGANIZATION: {}'.format(PER, LOC, ORG))
